@@ -287,3 +287,87 @@ void adicionar_colunas(EsquemaTabela *tabela) {
     }
 }
 
+int main(int argc, char *argv[]) {
+    EsquemaTabela tabela;
+    char caminho_tabela[MAX_CAMINHO];
+    char caminho_schema[MAX_CAMINHO];
+    char caminho_data[MAX_CAMINHO];
+    FILE *arquivo_schema;
+    FILE *arquivo_data;
+    int id_tabela;
+
+    if (argc < 2) {
+        printf("Uso: %s <nome_tabela>\n", argv[0]);
+        return 1;
+    }
+
+    if (!garantir_data_dir()) {
+        printf("Erro ao garantir diretorio base de dados.\n");
+        return 1;
+    }
+
+    memset(&tabela, 0, sizeof(EsquemaTabela));
+    strncpy(tabela.nome, argv[1], MAX_NOME - 1);
+    tabela.nome[MAX_NOME - 1] = '\0';
+
+    id_tabela = verifica_tabela_registrada(tabela.nome);
+    if (id_tabela < 0) {
+        return 1;
+    }
+
+    if (id_tabela > 0) {
+        printf("A tabela '%s' ja existe no catalogo.\n", tabela.nome);
+        return 0;
+    }
+
+    adicionar_colunas(&tabela);
+
+    if (tabela.quantidade_colunas == 0) {
+        printf("Nenhuma coluna foi adicionada.\n");
+        return 1;
+    }
+
+    snprintf(caminho_tabela, sizeof(caminho_tabela), "%s/%s", DATA_DIR, tabela.nome);
+    snprintf(caminho_schema, sizeof(caminho_schema), "%s/%s/%s.schema", DATA_DIR, tabela.nome, tabela.nome);
+    snprintf(caminho_data, sizeof(caminho_data), "%s/%s/%s.data", DATA_DIR, tabela.nome, tabela.nome);
+
+    if (!diretorio_existe(caminho_tabela)) {
+        if (!criar_diretorio(caminho_tabela)) {
+            printf("Erro ao criar diretorio da tabela.\n");
+            return 1;
+        }
+    }
+
+    arquivo_schema = fopen(caminho_schema, "wb");
+    if (arquivo_schema == NULL) {
+        printf("Erro ao criar schema da tabela.\n");
+        return 1;
+    }
+
+    if (fwrite(&tabela, sizeof(EsquemaTabela), 1, arquivo_schema) != 1) {
+        printf("Erro ao gravar schema da tabela.\n");
+        fclose(arquivo_schema);
+        return 1;
+    }
+
+    fclose(arquivo_schema);
+
+    arquivo_data = fopen(caminho_data, "wb");
+    if (arquivo_data == NULL) {
+        printf("Erro ao criar arquivo de dados da tabela.\n");
+        return 1;
+    }
+
+    fclose(arquivo_data);
+
+    if (!registra_tabela(tabela.nome)) {
+        printf("Erro ao registrar tabela no catalogo.\n");
+        return 1;
+    }
+
+    printf("Tabela '%s' criada com sucesso.\n", tabela.nome);
+    printf("Schema: %s\n", caminho_schema);
+    printf("Dados: %s\n", caminho_data);
+
+    return 0;
+}
