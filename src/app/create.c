@@ -146,3 +146,144 @@ int registra_tabela(const char *nome_tabela) {
     return 1;
 }
 
+TipoColuna escolher_tipo(void) {
+    int opcao;
+
+    while (1) {
+        printf("Tipo da coluna:\n");
+        printf("1. INT\n");
+        printf("2. FLOAT\n");
+        printf("3. DOUBLE\n");
+        printf("4. CHAR\n");
+        printf("5. STRING\n");
+        printf("Opcao: ");
+
+        if (scanf("%d", &opcao) != 1) {
+            printf("Opcao invalida.\n");
+            while (getchar() != '\n');
+            continue;
+        }
+
+        getchar();
+
+        switch (opcao) {
+            case 1: return TIPO_INT;
+            case 2: return TIPO_FLOAT;
+            case 3: return TIPO_DOUBLE;
+            case 4: return TIPO_CHAR;
+            case 5: return TIPO_STRING;
+            default:
+                printf("Opcao invalida.\n");
+        }
+    }
+}
+
+TipoChave escolher_tipo_chave_coluna(void) {
+    int opcao;
+
+    while (1) {
+        printf("Definicao da coluna:\n");
+        printf("0. Nenhuma\n");
+        printf("1. Chave primaria\n");
+        printf("2. Chave estrangeira\n");
+        printf("Opcao: ");
+
+        if (scanf("%d", &opcao) != 1) {
+            printf("Opcao invalida.\n");
+            while (getchar() != '\n');
+            continue;
+        }
+
+        getchar();
+
+        switch (opcao) {
+            case 0: return CHAVE_NENHUMA;
+            case 1: return CHAVE_PRIMARIA;
+            case 2: return CHAVE_ESTRANGEIRA;
+            default:
+                printf("Opcao invalida.\n");
+        }
+    }
+}
+
+int existe_chave_primaria(EsquemaTabela *tabela) {
+    for (int i = 0; i < tabela->quantidade_colunas; i++) {
+        if (tabela->colunas[i].tipo_chave == CHAVE_PRIMARIA) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void definir_chave_coluna(EsquemaTabela *tabela, Coluna *coluna) {
+    coluna->tipo_chave = escolher_tipo_chave_coluna();
+
+    if (coluna->tipo_chave == CHAVE_PRIMARIA) {
+        if (existe_chave_primaria(tabela)) {
+            printf("A tabela ja possui uma chave primaria. Cadastrando coluna normal.\n");
+            coluna->tipo_chave = CHAVE_NENHUMA;
+            return;
+        }
+    }
+}
+
+void adicionar_colunas(EsquemaTabela *tabela) {
+    char entrada[MAX_NOME];
+
+    while (tabela->quantidade_colunas < MAX_COLUNAS) {
+        printf("Nome da coluna (ou ] para encerrar): ");
+
+        if (fgets(entrada, sizeof(entrada), stdin) == NULL) {
+            break;
+        }
+
+        limpar_newline(entrada);
+
+        if (strcmp(entrada, "]") == 0) {
+            break;
+        }
+
+        if (strlen(entrada) == 0) {
+            printf("Nome invalido.\n");
+            continue;
+        }
+
+        Coluna *coluna = &tabela->colunas[tabela->quantidade_colunas];
+        memset(coluna, 0, sizeof(Coluna));
+
+        strncpy(coluna->nome, entrada, MAX_NOME - 1);
+        coluna->nome[MAX_NOME - 1] = '\0';
+
+        coluna->tipo = escolher_tipo();
+        definir_chave_coluna(tabela, coluna);
+
+        switch (coluna->tipo) {
+            case TIPO_INT:
+                coluna->tamanho = sizeof(int);
+                break;
+            case TIPO_FLOAT:
+                coluna->tamanho = sizeof(float);
+                break;
+            case TIPO_DOUBLE:
+                coluna->tamanho = sizeof(double);
+                break;
+            case TIPO_CHAR:
+                coluna->tamanho = sizeof(char);
+                break;
+            case TIPO_STRING:
+                printf("Tamanho maximo da STRING: ");
+                if (scanf("%d", &coluna->tamanho) != 1) {
+                    coluna->tamanho = 50;
+                }
+                getchar();
+
+                if (coluna->tamanho <= 0) {
+                    coluna->tamanho = 50;
+                }
+                break;
+        }
+
+        tabela->quantidade_colunas++;
+    }
+}
+
