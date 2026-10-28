@@ -42,3 +42,39 @@ typedef struct {
     int id;
 } RegistroTabela;
 
+int arquivo_existe(const char *caminho) {
+    struct stat st;
+    return stat(caminho, &st) == 0 && S_ISREG(st.st_mode);
+}
+
+int diretorio_existe(const char *caminho) {
+    struct stat st;
+    return stat(caminho, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+void limpar_newline(char *texto) {
+    texto[strcspn(texto, "\n")] = '\0';
+}
+
+int criar_diretorio(const char *caminho) {
+    printf("Criando diretorio: %s\n", caminho);
+
+    if (mkdir(caminho, 0777) == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int garantir_data_dir(void) {
+    if (diretorio_existe(DATA_DIR)) {
+        return 1;
+    }
+
+    if (mkdir(DATA_DIR, 0777) == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
