@@ -78,3 +78,71 @@ int garantir_data_dir(void) {
     return 0;
 }
 
+int verifica_tabela_registrada(const char *nome_tabela) {
+    FILE *arquivo;
+    RegistroTabela registro;
+
+    arquivo = fopen(ARQUIVO_TABELAS, "rb");
+    if (arquivo == NULL) {
+        arquivo = fopen(ARQUIVO_TABELAS, "wb");
+        if (arquivo == NULL) {
+            printf("Erro ao criar arquivo de registros das tabelas.\n");
+            return -1;
+        }
+
+        fclose(arquivo);
+        return 0;
+    }
+
+    while (fread(&registro, sizeof(RegistroTabela), 1, arquivo) == 1) {
+        if (strcmp(registro.nome, nome_tabela) == 0) {
+            fclose(arquivo);
+            return registro.id;
+        }
+    }
+
+    fclose(arquivo);
+    return 0;
+}
+
+int obter_proximo_id_tabela(void) {
+    FILE *arquivo;
+    RegistroTabela registro;
+    int ultimo_id = 0;
+
+    arquivo = fopen(ARQUIVO_TABELAS, "rb");
+    if (arquivo == NULL) {
+        return 1;
+    }
+
+    while (fread(&registro, sizeof(RegistroTabela), 1, arquivo) == 1) {
+        ultimo_id = registro.id;
+    }
+
+    fclose(arquivo);
+    return ultimo_id + 1;
+}
+
+int registra_tabela(const char *nome_tabela) {
+    FILE *arquivo;
+    RegistroTabela registro;
+
+    arquivo = fopen(ARQUIVO_TABELAS, "ab");
+    if (arquivo == NULL) {
+        return 0;
+    }
+
+    memset(&registro, 0, sizeof(RegistroTabela));
+    strncpy(registro.nome, nome_tabela, MAX_NOME - 1);
+    registro.nome[MAX_NOME - 1] = '\0';
+    registro.id = obter_proximo_id_tabela();
+
+    if (fwrite(&registro, sizeof(RegistroTabela), 1, arquivo) != 1) {
+        fclose(arquivo);
+        return 0;
+    }
+
+    fclose(arquivo);
+    return 1;
+}
+
